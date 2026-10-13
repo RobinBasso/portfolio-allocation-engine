@@ -67,3 +67,48 @@ def test_infeasible_weight_limit(covariance):
 def test_empty_covariance():
     with pytest.raises(ValueError):
         minimum_variance_weights(pd.DataFrame())
+
+
+def test_asset_specific_weight_limits(covariance):
+    limits = {"A": 0.20, "B": 0.50, "C": 0.60}
+
+    weights = minimum_variance_weights(
+        covariance,
+        max_weight=limits,
+    )
+
+    assert weights.sum() == pytest.approx(1.0)
+    for asset, limit in limits.items():
+        assert weights[asset] <= limit + 1e-8
+
+
+def test_missing_asset_limit_raises_error(covariance):
+    with pytest.raises(ValueError, match="Missing weight limits"):
+        minimum_variance_weights(
+            covariance,
+            max_weight={"A": 0.50, "B": 0.50},
+        )
+
+
+def test_unknown_asset_limit_raises_error(covariance):
+    with pytest.raises(ValueError, match="Unknown assets"):
+        minimum_variance_weights(
+            covariance,
+            max_weight={"A": 0.50, "B": 0.50, "C": 0.50, "D": 0.50},
+        )
+
+
+def test_limits_must_allow_full_investment(covariance):
+    with pytest.raises(ValueError, match="too restrictive"):
+        minimum_variance_weights(
+            covariance,
+            max_weight={"A": 0.20, "B": 0.30, "C": 0.40},
+        )
+
+
+def test_invalid_asset_limit_raises_error(covariance):
+    with pytest.raises(ValueError, match="Weight limits must be in"):
+        minimum_variance_weights(
+            covariance,
+            max_weight={"A": 0.20, "B": 0.50, "C": 1.10},
+        )

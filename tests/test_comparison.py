@@ -57,3 +57,22 @@ def test_metrics_are_finite(prices):
 def test_empty_prices_raise_error():
     with pytest.raises(ValueError, match="Price data cannot be empty"):
         compare_portfolios(pd.DataFrame())
+
+
+def test_sharpe_ratio_changes_with_risk_free_rate(prices):
+    zero_rate = compare_portfolios(prices, risk_free_rate=0.0)
+    higher_rate = compare_portfolios(prices, risk_free_rate=0.03)
+
+    assert (
+        higher_rate["Sharpe Ratio"] < zero_rate["Sharpe Ratio"]
+    ).all()
+
+    pd.testing.assert_series_equal(
+        zero_rate["Annualized Return"],
+        higher_rate["Annualized Return"],
+    )
+
+    pd.testing.assert_series_equal(
+        zero_rate["Annualized Volatility"],
+        higher_rate["Annualized Volatility"],
+    )

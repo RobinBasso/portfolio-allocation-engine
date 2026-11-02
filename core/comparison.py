@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 
@@ -9,9 +8,11 @@ from core.returns import calculate_returns
 from optimization.minimum_variance import minimum_variance_weights
 
 
-def compare_portfolios(prices: pd.DataFrame) -> pd.DataFrame:
+def compare_portfolios(
+    prices: pd.DataFrame,
+    risk_free_rate: float = 0.0,
+) -> pd.DataFrame:
     """Compare equal-weight and minimum-variance portfolios."""
-
     if prices.empty:
         raise ValueError("Price data cannot be empty.")
 
@@ -45,6 +46,7 @@ def compare_portfolios(prices: pd.DataFrame) -> pd.DataFrame:
             "Sharpe Ratio": sharpe_ratio(
                 annual_return,
                 annual_volatility,
+                risk_free_rate=risk_free_rate,
             ),
         }
 

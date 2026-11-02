@@ -73,7 +73,7 @@ def run_portfolio_analysis(
     }
 
     return {
-        "comparison": compare_portfolios(prices),
+        "comparison": compare_portfolios(prices, risk_free_rate=risk_free_rate),
         "allocations": portfolios,
         "risk_reports": allocation_reports,
         "historical_stress": historical_stress_report(

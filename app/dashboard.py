@@ -19,7 +19,25 @@ st.set_page_config(
 st.title("Portfolio Allocation & Risk Engine")
 st.caption("Portfolio construction, risk attribution and stress analysis")
 
+prices = pd.read_csv(
+    PROJECT_ROOT / "data" / "prices.csv",
+    index_col=0,
+    parse_dates=True,
+)
+
 st.sidebar.header("Analysis parameters")
+
+period_options = {
+    "1 year": 252,
+    "3 years": 252 * 3,
+    "Full history": len(prices),
+}
+
+selected_period = st.sidebar.selectbox(
+    "Historical estimation period",
+    options=list(period_options.keys()),
+    index=2,
+)
 
 risk_free_rate = st.sidebar.number_input(
     "Annual risk-free rate",
@@ -38,14 +56,19 @@ stress_window = st.sidebar.number_input(
     step=1,
 )
 
-prices = pd.read_csv(
-    PROJECT_ROOT / "data" / "prices.csv",
-    index_col=0,
-    parse_dates=True,
+number_of_observations = period_options[selected_period]
+selected_prices = prices.tail(number_of_observations)
+
+st.sidebar.caption(
+    f"Data: {selected_prices.index.min():%Y-%m-%d} to "
+    f"{selected_prices.index.max():%Y-%m-%d}"
+)
+st.sidebar.caption(
+    f"{len(selected_prices)} price observations"
 )
 
 analysis = run_portfolio_analysis(
-    prices,
+    selected_prices,
     risk_free_rate=risk_free_rate,
     stress_window=int(stress_window),
 )

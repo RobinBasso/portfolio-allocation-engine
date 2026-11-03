@@ -88,3 +88,20 @@ def test_rejects_duplicate_asset_labels(prices):
 def test_rejects_invalid_stress_window(prices):
     with pytest.raises(ValueError, match="[Ww]indow"):
         run_portfolio_analysis(prices, stress_window=0)
+
+
+def test_analysis_recalculates_metrics_for_shorter_estimation_period(prices):
+    full_history = run_portfolio_analysis(prices)
+    recent_history = run_portfolio_analysis(prices.tail(150))
+
+    full_metrics = full_history["comparison"]
+    recent_metrics = recent_history["comparison"]
+
+    assert not np.allclose(
+        full_metrics["Annualized Return"].values,
+        recent_metrics["Annualized Return"].values,
+    )
+    assert not np.allclose(
+        full_metrics["Annualized Volatility"].values,
+        recent_metrics["Annualized Volatility"].values,
+    )

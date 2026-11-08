@@ -67,3 +67,70 @@ def test_report_identifies_smaller_maximum_drawdown(portfolio_returns):
         report["interpretation"]["Maximum Drawdown"]
         == "Minimum Variance"
     )
+
+
+@pytest.fixture
+def four_strategy_returns(portfolio_returns):
+    returns = portfolio_returns.copy()
+
+    returns["Equal Weight Net"] = (
+        returns["Equal Weight"] - 0.0001
+    )
+
+    returns["Minimum Variance Net"] = (
+        returns["Minimum Variance"] - 0.0001
+    )
+
+    return returns
+
+
+def test_report_includes_gross_and_net_metrics(four_strategy_returns):
+    report = build_backtest_report(four_strategy_returns)
+
+    assert len(report["metrics"]) == 4
+
+    assert list(report["metrics"].index) == [
+        "Equal Weight",
+        "Minimum Variance",
+        "Equal Weight Net",
+        "Minimum Variance Net",
+    ]
+
+    assert "transaction_cost_impact" in report
+
+
+def test_report_calculates_transaction_cost_impact(four_strategy_returns):
+    report = build_backtest_report(four_strategy_returns)
+
+    impact = report["transaction_cost_impact"]
+    metrics = report["metrics"]
+
+    for strategy in ["Equal Weight", "Minimum Variance"]:
+        net_strategy = f"{strategy} Net"
+
+        expected_annualized_loss = (
+            metrics.loc[strategy, "Annualized Return"]
+            - metrics.loc[net_strategy, "Annualized Return"]
+        )
+
+        expected_total_loss = (
+            metrics.loc[strategy, "Total Return"]
+            - metrics.loc[net_strategy, "Total Return"]
+        )
+
+        assert impact.loc[
+            strategy, "Annualized Return Lost"
+        ] == pytest.approx(expected_annualized_loss)
+
+        assert impact.loc[
+            strategy, "Total Return Lost"
+        ] == pytest.approx(expected_total_loss)
+
+        assert impact.loc[strategy, "Annualized Return Lost"] > 0
+        assert impact.loc[strategy, "Total Return Lost"] > 0
+
+
+def test_two_strategy_report_does_not_include_cost_impact(portfolio_returns):
+    report = build_backtest_report(portfolio_returns)
+
+    assert "transaction_cost_impact" not in report

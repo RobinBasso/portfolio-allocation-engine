@@ -34,6 +34,10 @@ def test_returns_both_portfolio_strategies(prices):
     assert list(result.columns) == [
         "Equal Weight",
         "Minimum Variance",
+        "Equal Weight Net",
+        "Minimum Variance Net",
+        "Equal Weight Turnover",
+        "Minimum Variance Turnover",
     ]
 
 
@@ -169,3 +173,108 @@ def test_rejects_unsorted_dates(prices):
 
     with pytest.raises(ValueError, match="ascending"):
         run_rolling_backtest(prices)
+
+
+def test_first_backtest_period_has_zero_turnover(prices):
+    result = run_rolling_backtest(prices)
+
+    first_date = result.index[0]
+
+    assert result.loc[first_date, "Equal Weight Turnover"] == 0.0
+    assert result.loc[first_date, "Minimum Variance Turnover"] == 0.0
+
+
+def test_turnover_is_only_recorded_at_rebalancing_dates(prices):
+    result = run_rolling_backtest(
+        prices,
+        estimation_window=100,
+        rebalance_frequency=20,
+    )
+
+    turnover_columns = [
+        "Equal Weight Turnover",
+        "Minimum Variance Turnover",
+    ]
+
+    for column in turnover_columns:
+        nonzero_dates = result.index[result[column] > 0]
+
+        expected_dates = result.index[20::20]
+
+        assert nonzero_dates.equals(expected_dates)
+
+
+
+def test_zero_transaction_costs_preserve_gross_returns(prices):
+    result = run_rolling_backtest(
+        prices,
+        transaction_cost_bps=0.0,
+    )
+
+    np.testing.assert_allclose(
+        result["Equal Weight"].to_numpy(),
+        result["Equal Weight Net"].to_numpy(),
+    )
+
+    np.testing.assert_allclose(
+        result["Minimum Variance"].to_numpy(),
+        result["Minimum Variance Net"].to_numpy(),
+    )
+
+
+def test_transaction_costs_reduce_net_returns(prices):
+    result = run_rolling_backtest(
+        prices,
+        transaction_cost_bps=10.0,
+    )
+
+    assert (
+        result["Equal Weight Net"] <= result["Equal Weight"]
+    ).all()
+
+    assert (
+        result["Minimum Variance Net"] <= result["Minimum Variance"]
+    ).all()
+
+
+def test_transaction_costs_are_applied_only_at_rebalancing_dates(prices):
+    result = run_rolling_backtest(
+        prices,
+        estimation_window=100,
+        rebalance_frequency=20,
+        transaction_cost_bps=10.0,
+    )
+
+    equal_cost_dates = result.index[
+        result["Equal Weight Net"] < result["Equal Weight"]
+    ]
+
+    minimum_variance_cost_dates = result.index[
+        result["Minimum Variance Net"] < result["Minimum Variance"]
+    ]
+
+    expected_dates = result.index[20::20]
+
+    assert equal_cost_dates.equals(expected_dates)
+    assert minimum_variance_cost_dates.equals(expected_dates)
+
+
+def test_rejects_invalid_transaction_costs(prices):
+    import pytest
+
+    for invalid_cost in [-1.0, 10_000.0, float("inf"), float("nan")]:
+        with pytest.raises(ValueError):
+            run_rolling_backtest(
+                prices,
+                transaction_cost_bps=invalid_cost,
+            )
+
+
+def test_rejects_boolean_transaction_cost(prices):
+    import pytest
+
+    with pytest.raises(ValueError):
+        run_rolling_backtest(
+            prices,
+            transaction_cost_bps=True,
+        )

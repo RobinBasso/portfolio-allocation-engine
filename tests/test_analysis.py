@@ -105,3 +105,56 @@ def test_analysis_recalculates_metrics_for_shorter_estimation_period(prices):
         full_metrics["Annualized Volatility"].values,
         recent_metrics["Annualized Volatility"].values,
     )
+
+def test_sample_covariance_is_the_default_method(prices):
+    default_result = run_portfolio_analysis(prices)
+    sample_result = run_portfolio_analysis(
+        prices,
+        covariance_method="sample",
+    )
+
+    pd.testing.assert_series_equal(
+        default_result["allocations"]["Minimum Variance"],
+        sample_result["allocations"]["Minimum Variance"],
+    )
+
+
+def test_shrinkage_method_uses_shrinkage_covariance(prices, monkeypatch):
+    import core.analysis as analysis
+
+    original_function = analysis.calculate_shrinkage_covariance
+    calls = []
+
+    def tracked_function(returns, shrinkage=0.20, annualize=True):
+        calls.append(shrinkage)
+        return original_function(
+            returns,
+            shrinkage=shrinkage,
+            annualize=annualize,
+        )
+
+    monkeypatch.setattr(
+        analysis,
+        "calculate_shrinkage_covariance",
+        tracked_function,
+    )
+
+    result = run_portfolio_analysis(
+        prices,
+        covariance_method="shrinkage",
+        shrinkage=0.50,
+    )
+
+    weights = result["allocations"]["Minimum Variance"]
+
+    assert calls == [0.50]
+    assert weights.sum() == pytest.approx(1.0)
+    assert (weights >= 0).all()
+
+
+def test_rejects_unsupported_covariance_method(prices):
+    with pytest.raises(ValueError, match="Covariance method"):
+        run_portfolio_analysis(
+            prices,
+            covariance_method="unsupported",
+        )

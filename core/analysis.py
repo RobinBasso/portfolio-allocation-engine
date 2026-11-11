@@ -1,8 +1,10 @@
-
 import pandas as pd
 
 from core.comparison import compare_portfolios
-from core.covariance import calculate_covariance
+from core.covariance import (
+    calculate_covariance,
+    calculate_shrinkage_covariance,
+)
 from core.reporting import build_allocation_report
 from core.returns import calculate_returns
 from optimization.minimum_variance import minimum_variance_weights
@@ -14,8 +16,11 @@ def run_portfolio_analysis(
     prices: pd.DataFrame,
     risk_free_rate: float = 0.0,
     stress_window: int = 21,
+    covariance_method: str = "sample",
+    shrinkage: float = 0.20,
 ) -> dict[str, pd.DataFrame | pd.Series | dict]:
     """Run portfolio comparison, allocation, risk attribution and stress tests."""
+
     if not isinstance(prices, pd.DataFrame):
         raise TypeError("Prices must be a pandas DataFrame.")
 
@@ -42,12 +47,25 @@ def run_portfolio_analysis(
     if not isinstance(stress_window, int) or isinstance(stress_window, bool):
         raise TypeError("Stress window must be an integer.")
 
+    if covariance_method not in {"sample", "shrinkage"}:
+        raise ValueError(
+            "Covariance method must be either 'sample' or 'shrinkage'."
+        )
+
     returns = calculate_returns(prices)
 
     if returns.empty:
-        raise ValueError("Prices must contain enough observations to calculate returns.")
+        raise ValueError(
+            "Prices must contain enough observations to calculate returns."
+        )
 
-    covariance = calculate_covariance(returns)
+    if covariance_method == "sample":
+        covariance = calculate_covariance(returns)
+    else:
+        covariance = calculate_shrinkage_covariance(
+            returns,
+            shrinkage=shrinkage,
+        )
 
     equal_weight = pd.Series(
         1.0 / len(prices.columns),
@@ -73,7 +91,10 @@ def run_portfolio_analysis(
     }
 
     return {
-        "comparison": compare_portfolios(prices, risk_free_rate=risk_free_rate),
+        "comparison": compare_portfolios(
+            prices,
+            risk_free_rate=risk_free_rate,
+        ),
         "allocations": portfolios,
         "risk_reports": allocation_reports,
         "historical_stress": historical_stress_report(

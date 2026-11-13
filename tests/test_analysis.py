@@ -158,3 +158,36 @@ def test_rejects_unsupported_covariance_method(prices):
             prices,
             covariance_method="unsupported",
         )
+
+
+def test_ledoit_wolf_method_uses_ledoit_wolf_covariance(prices, monkeypatch):
+
+    import core.analysis as analysis
+
+    original_function = analysis.calculate_ledoit_wolf_covariance
+
+    calls = []
+
+    def tracked_function(returns, annualize=True):
+        calls.append(True)
+        return original_function(
+            returns,
+            annualize=annualize,
+        )
+
+    monkeypatch.setattr(
+        analysis,
+        "calculate_ledoit_wolf_covariance",
+        tracked_function,
+    )
+
+    result = run_portfolio_analysis(
+        prices,
+        covariance_method="ledoit_wolf",
+    )
+
+    weights = result["allocations"]["Minimum Variance"]
+
+    assert calls == [True]
+    assert weights.sum() == pytest.approx(1.0)
+    assert (weights >= 0).all()

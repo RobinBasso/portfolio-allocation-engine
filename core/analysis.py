@@ -3,6 +3,7 @@ import pandas as pd
 from core.comparison import compare_portfolios
 from core.covariance import (
     calculate_covariance,
+    calculate_ledoit_wolf_covariance,
     calculate_shrinkage_covariance,
 )
 from core.reporting import build_allocation_report
@@ -47,9 +48,9 @@ def run_portfolio_analysis(
     if not isinstance(stress_window, int) or isinstance(stress_window, bool):
         raise TypeError("Stress window must be an integer.")
 
-    if covariance_method not in {"sample", "shrinkage"}:
+    if covariance_method not in {"sample", "shrinkage", "ledoit_wolf"}:
         raise ValueError(
-            "Covariance method must be either 'sample' or 'shrinkage'."
+            "Covariance method must be 'sample', 'shrinkage', or 'ledoit_wolf'."
         )
 
     returns = calculate_returns(prices)
@@ -61,11 +62,15 @@ def run_portfolio_analysis(
 
     if covariance_method == "sample":
         covariance = calculate_covariance(returns)
-    else:
+
+    elif covariance_method == "shrinkage":
         covariance = calculate_shrinkage_covariance(
             returns,
             shrinkage=shrinkage,
         )
+
+    else:
+        covariance = calculate_ledoit_wolf_covariance(returns)
 
     equal_weight = pd.Series(
         1.0 / len(prices.columns),

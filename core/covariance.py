@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from sklearn.covariance import LedoitWolf
+
 
 TRADING_DAYS_PER_YEAR = 252
 
@@ -71,6 +73,52 @@ def calculate_shrinkage_covariance(
     covariance = (
         (1.0 - shrinkage) * sample_covariance
         + shrinkage * diagonal_target
+    )
+
+    if annualize:
+        covariance = covariance * TRADING_DAYS_PER_YEAR
+
+    return covariance
+
+
+def calculate_ledoit_wolf_covariance(
+    returns: pd.DataFrame,
+    annualize: bool = True,
+) -> pd.DataFrame:
+    """
+    Calculate a Ledoit-Wolf shrinkage covariance matrix.
+
+    The shrinkage intensity is estimated automatically from
+    the return observations.
+    """
+
+    if not isinstance(returns, pd.DataFrame):
+        raise TypeError("Returns must be a pandas DataFrame.")
+
+    if returns.empty or returns.shape[1] == 0:
+        raise ValueError("Return data cannot be empty.")
+
+    if not returns.columns.is_unique:
+        raise ValueError("Asset labels must be unique.")
+
+    if len(returns) < 2:
+        raise ValueError("At least two observations are required.")
+
+    if returns.isna().any().any():
+        raise ValueError("Return data cannot contain missing values.")
+
+    values = returns.to_numpy(dtype=float)
+
+    if not np.isfinite(values).all():
+        raise ValueError("Return data must be finite.")
+
+    estimator = LedoitWolf()
+    estimator.fit(values)
+
+    covariance = pd.DataFrame(
+        estimator.covariance_,
+        index=returns.columns,
+        columns=returns.columns,
     )
 
     if annualize:

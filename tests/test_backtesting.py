@@ -278,3 +278,66 @@ def test_rejects_boolean_transaction_cost(prices):
             prices,
             transaction_cost_bps=True,
         )
+
+
+@pytest.mark.parametrize(
+    "covariance_method",
+    ["sample", "shrinkage", "ledoit_wolf"],
+)
+def test_backtest_supports_all_covariance_estimators(
+    prices,
+    covariance_method,
+):
+    result = run_rolling_backtest(
+        prices,
+        estimation_window=100,
+        rebalance_frequency=20,
+        covariance_method=covariance_method,
+    )
+
+    assert not result.empty
+    assert result.index.is_unique
+    assert result.index.is_monotonic_increasing
+    assert np.isfinite(result.to_numpy()).all()
+
+
+def test_covariance_estimators_use_identical_out_of_sample_dates(prices):
+    results = {
+        method: run_rolling_backtest(
+            prices,
+            estimation_window=100,
+            rebalance_frequency=20,
+            covariance_method=method,
+        )
+        for method in ["sample", "shrinkage", "ledoit_wolf"]
+    }
+
+    reference_index = results["sample"].index
+
+    for result in results.values():
+        pd.testing.assert_index_equal(result.index, reference_index)
+
+
+def test_default_covariance_method_is_sample(prices):
+    default_result = run_rolling_backtest(
+        prices,
+        estimation_window=100,
+        rebalance_frequency=20,
+    )
+
+    explicit_result = run_rolling_backtest(
+        prices,
+        estimation_window=100,
+        rebalance_frequency=20,
+        covariance_method="sample",
+    )
+
+    pd.testing.assert_frame_equal(default_result, explicit_result)
+
+
+def test_rejects_unknown_covariance_method(prices):
+    with pytest.raises(ValueError, match="Unknown covariance method"):
+        run_rolling_backtest(
+            prices,
+            covariance_method="unknown",
+        )

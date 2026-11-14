@@ -1,10 +1,22 @@
+
 import numpy as np
 import pandas as pd
 
-from core.covariance import calculate_covariance
+from core.covariance import (
+    calculate_covariance,
+    calculate_shrinkage_covariance,
+    calculate_ledoit_wolf_covariance,
+)
 from core.returns import calculate_returns
 from core.turnover import calculate_turnover
 from optimization.minimum_variance import minimum_variance_weights
+
+
+COVARIANCE_ESTIMATORS = {
+    "sample": calculate_covariance,
+    "shrinkage": calculate_shrinkage_covariance,
+    "ledoit_wolf": calculate_ledoit_wolf_covariance,
+}
 
 
 def _buy_and_hold_returns(
@@ -12,11 +24,9 @@ def _buy_and_hold_returns(
     initial_weights: np.ndarray,
 ) -> pd.Series:
     """Calculate daily portfolio returns without intra-period rebalancing."""
-
     asset_growth = (1 + asset_returns).cumprod()
     portfolio_value = asset_growth @ initial_weights
     previous_value = portfolio_value.shift(1, fill_value=1.0)
-
     return (portfolio_value / previous_value - 1).rename("Portfolio")
 
 
@@ -25,10 +35,8 @@ def _drift_weights(
     asset_returns: pd.DataFrame,
 ) -> np.ndarray:
     """Calculate portfolio weights after buy-and-hold returns."""
-
     asset_growth = (1 + asset_returns).prod(axis=0).to_numpy()
     ending_values = initial_weights * asset_growth
-
     return ending_values / ending_values.sum()
 
 
@@ -38,9 +46,7 @@ def _apply_transaction_cost(
     transaction_cost_bps: float,
 ) -> pd.Series:
     """Deduct transaction costs from the first return of a period."""
-
     net_returns = gross_returns.copy()
-
     cost_rate = transaction_cost_bps / 10_000
     cost_fraction = turnover * cost_rate
 
@@ -59,6 +65,7 @@ def run_rolling_backtest(
     rebalance_frequency: int = 21,
     max_weight: float = 0.40,
     transaction_cost_bps: float = 10.0,
+    covariance_method: str = "sample",
 ) -> pd.DataFrame:
     """Run a chronological rolling-window portfolio backtest."""
 
@@ -102,6 +109,12 @@ def run_rolling_backtest(
             "Transaction cost must be finite and between 0 and 10,000 bps."
         )
 
+    if covariance_method not in COVARIANCE_ESTIMATORS:
+        raise ValueError(
+            f"Unknown covariance method: {covariance_method}. "
+            f"Choose from {list(COVARIANCE_ESTIMATORS)}."
+        )
+
     if prices.shape[1] < 2:
         raise ValueError("At least two assets are required.")
 
@@ -115,6 +128,8 @@ def run_rolling_backtest(
     results = []
     train_end = estimation_window
 
+    covariance_estimator = COVARIANCE_ESTIMATORS[covariance_method]
+
     while train_end < len(prices):
         test_end = min(train_end + rebalance_frequency, len(prices))
 
@@ -124,7 +139,7 @@ def run_rolling_backtest(
 
         training_returns = calculate_returns(training_prices)
 
-        covariance = calculate_covariance(
+        covariance = covariance_estimator(
             training_returns,
             annualize=False,
         )
@@ -148,7 +163,6 @@ def run_rolling_backtest(
                 previous_equal_weights,
                 equal_weights,
             )
-
             optimized_turnover = calculate_turnover(
                 previous_optimized_weights,
                 optimized_weights,

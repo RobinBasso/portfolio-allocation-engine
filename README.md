@@ -5,6 +5,25 @@ A Python portfolio analytics engine for asset allocation, risk attribution, cons
 
 The project demonstrates applied numerical methods, portfolio risk modeling, constrained optimization, software testing, and reproducible quantitative analysis.
 
+## Project Status
+
+**Status: In Progress**
+
+This project is under active development.
+
+The objective is to build a modular portfolio allocation and risk analysis engine, combining quantitative portfolio construction methods with comprehensive risk measurement and scenario analysis.
+
+Current development includes:
+
+- Portfolio construction and optimization
+- Minimum variance and equal-weight allocation strategies
+- Historical and parametric risk analysis
+- Monte Carlo simulation and portfolio risk metrics
+- Transaction cost sensitivity analysis
+- Portfolio performance and risk reporting
+
+Further development will focus on extending the analytical framework, improving robustness, and adding additional portfolio analysis capabilities.
+
 ## Features
 
 - **Portfolio analytics:** annualized return, volatility, and Sharpe ratio.

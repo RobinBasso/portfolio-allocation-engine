@@ -1,54 +1,53 @@
-
 # Portfolio Allocation & Risk-Based Optimization Engine
 
-A Python portfolio analytics and optimization engine for constrained asset allocation, portfolio risk measurement, out-of-sample backtesting, and quantitative robustness analysis.
+**Status:** In progress
 
-The project demonstrates applied numerical methods, covariance estimation, portfolio optimization, risk attribution, transaction cost modeling, and systematic testing.
+A Python-based portfolio research project focused on portfolio
+construction, risk measurement, rolling out-of-sample backtesting, and
+quantitative evaluation of portfolio allocation strategies.
 
-## Project Status
-
-**Status: In Progress**
-
-The engine currently includes:
-
-- Constrained minimum-variance portfolio optimization.
-- Historical and parametric stress testing.
-- Portfolio risk attribution.
-- Rolling out-of-sample backtesting.
-- Transaction cost sensitivity analysis.
-- Covariance estimator robustness analysis.
-- Portfolio allocation stability analysis.
-- Rolling portfolio performance attribution, including daily asset contributions and transaction costs.
-- Automated unit and integration tests.
+The project implements a minimum-variance portfolio workflow and
+compares it with an equal-weight benchmark. It also examines the effect
+of covariance estimation, portfolio rebalancing, transaction costs, and
+changing market conditions.
 
 ## Features
 
-- **Portfolio analytics:** annualized return, volatility, and Sharpe ratio.
-- **Risk attribution:** marginal and component contributions to portfolio volatility.
-- **Constrained optimization:** long-only minimum-variance allocation with full investment and asset-specific weight limits.
-- **Covariance estimation:** sample covariance, fixed shrinkage, and Ledoit-Wolf estimators.
-- **Rolling backtesting:** periodic portfolio re-optimization using historical estimation windows.
-- **Transaction cost modeling:** gross and net performance analysis under different transaction cost assumptions.
-- **Historical stress testing:** maximum drawdown, worst rolling-period return, and worst daily return.
-- **Parametric stress testing:** portfolio sensitivity to equity sell-offs, bond sell-offs, and combined risk-off scenarios.
-- **Robustness analysis:** comparison of covariance estimators, estimation windows, and rebalancing configurations.
-- **Allocation stability:** analysis of weight variability, target allocation turnover, and effective portfolio diversification.
-- **Reproducibility:** deterministic synthetic price data and automated tests.
+-   Historical asset-return calculation and covariance estimation.
+-   Sample covariance, fixed shrinkage, and Ledoit-Wolf covariance
+    estimators.
+-   Long-only minimum-variance portfolio optimization with configurable
+    maximum asset weights.
+-   Equal-weight benchmark portfolio.
+-   Portfolio performance and risk analysis.
+-   Historical and parametric stress testing.
+-   Rolling out-of-sample backtesting with periodic rebalancing.
+-   Portfolio turnover and transaction-cost modelling.
+-   Backtest performance reporting.
+-   Covariance-estimator robustness and allocation-stability analysis.
+-   Fixed-weight and rolling portfolio performance attribution.
+-   Automated test suite.
 
-## Project Structure
+## Project structure
 
-```text
+``` text
 portfolio-allocation-engine/
 ├── app/
+│   ├── compare_covariance.py
+│   ├── compare_covariance_backtest.py
 │   ├── covariance_robustness.py
+│   ├── dashboard.py
 │   ├── performance_attribution.py
 │   ├── plot_analysis.py
 │   ├── plot_backtest.py
+│   ├── plot_sensitivity.py
 │   ├── plot_weight_stability.py
 │   ├── run_analysis.py
+│   ├── run_backtest_report.py
+│   ├── run_robustness.py
+│   ├── run_sensitivity.py
 │   ├── transaction_cost_sensitivity.py
 │   └── weight_stability.py
-│
 ├── backtesting/
 │   ├── attribution.py
 │   ├── rolling.py
@@ -57,254 +56,279 @@ portfolio-allocation-engine/
 │   ├── analysis.py
 │   ├── attribution.py
 │   ├── backtest_metrics.py
+│   ├── backtest_reporting.py
 │   ├── comparison.py
 │   ├── covariance.py
 │   ├── portfolio.py
 │   ├── reporting.py
 │   ├── returns.py
 │   ├── risk.py
+│   ├── robustness.py
+│   ├── sensitivity.py
 │   └── turnover.py
-│
+├── data/
+│   ├── generate_data.py
+│   └── prices.csv
 ├── optimization/
 │   └── minimum_variance.py
 ├── scenarios/
 │   ├── historical.py
 │   └── parametric.py
 ├── tests/
-├── data/
-│   ├── generate_data.py
-│   └── prices.csv
-├── reports/
-├── requirements.txt
-└── README.md
+├── LICENSE
+├── README.md
+├── pytest.ini
+└── requirements.txt
 ```
 
 ## Methodology
 
-### Returns and risk
+### Asset returns and covariance
 
-Daily asset returns are calculated from historical price series. Annualized covariance uses 252 trading days per year.
+The project calculates asset returns from price data and estimates the
+covariance matrix used by the portfolio optimizer.
 
-Portfolio volatility is derived from the covariance matrix and portfolio weights. Risk attribution decomposes portfolio volatility into asset-level contributions.
+Three covariance approaches are available:
 
-### Covariance estimation
+-   **Sample covariance:** the standard historical covariance estimator.
+-   **Fixed shrinkage:** shrinks the sample covariance estimate towards
+    a diagonal target.
+-   **Ledoit-Wolf:** estimates the shrinkage intensity from the data
+    using the Ledoit-Wolf method.
 
-Three covariance estimators are implemented and compared:
-
-- **Sample covariance:** estimates covariance directly from historical returns.
-- **Fixed shrinkage:** shrinks sample covariance estimates towards a diagonal covariance target.
-- **Ledoit-Wolf:** applies a data-driven shrinkage estimator.
-
-The objective is to assess how covariance estimation affects portfolio construction, realized performance, and allocation stability.
+The covariance estimator can materially affect optimized allocations,
+particularly when asset returns are noisy or correlated.
 
 ### Minimum-variance optimization
 
-The optimizer minimizes portfolio variance subject to:
+The optimizer seeks portfolio weights that minimize portfolio variance:
 
-- Long-only asset weights.
-- Full investment: weights sum to one.
-- A maximum allocation constraint, either global or asset-specific.
+\[ `\min`{=tex}\_w `\quad `{=tex}w\^`\mathsf{T}`{=tex}`\Sigma `{=tex}w
+\]
 
-The resulting portfolio minimizes estimated volatility under the supplied covariance matrix and constraints. It does not maximize expected return.
+subject to:
+
+\[ `\sum`{=tex}*i w_i = 1,`\qquad 0`{=tex} `\leq `{=tex}w_i
+`\leq `{=tex}w*{`\max`{=tex}} \]
+
+where (w) is the vector of portfolio weights, (`\Sigma`{=tex}) is the
+estimated covariance matrix, and (w\_{`\max`{=tex}}) is the maximum
+permitted weight for an individual asset.
+
+The resulting portfolio is compared with an equal-weight allocation.
 
 ### Rolling out-of-sample backtesting
 
-The backtesting engine uses a rolling estimation window to estimate covariance and periodically re-optimize portfolio weights.
+The rolling backtest uses a trailing estimation window to estimate
+covariance and determine portfolio weights. The portfolio is then held
+until the next scheduled rebalance.
 
 The default configuration uses:
 
-- Estimation window: 252 observations.
-- Rebalancing frequency: 21 observations.
-- Maximum asset allocation: 40%.
+-   Estimation window: 252 trading observations.
+-   Rebalancing frequency: 21 trading observations.
+-   Maximum individual asset weight: 40%.
+-   Transaction cost assumption: 10 basis points.
 
-Portfolio weights are allowed to drift between rebalancing dates as asset returns change their relative portfolio values.
+At each rebalance, the optimizer uses the trailing estimation window
+available at that point. Subsequent portfolio returns are evaluated out
+of sample until the next rebalance.
 
-The backtest tracks portfolio returns and executed turnover, allowing performance to be evaluated before and after transaction costs.
+Portfolio weights drift with asset performance between rebalances.
+Executed turnover therefore accounts for the difference between the
+drifted holdings and the new target allocation.
 
-### Transaction cost sensitivity
+Transaction costs are applied when the portfolio is rebalanced. If
+(TO_t) is executed turnover and (b) is the transaction-cost assumption
+in basis points, the proportional cost is:
 
-Transaction costs are applied to executed portfolio turnover at rebalancing dates.
+\[ c_t = TO_t `\frac{b}{10\,000}`{=tex} \]
 
-The analysis compares gross and net performance under different transaction cost assumptions. Configurations are evaluated over a common out-of-sample period to improve comparability.
+The net return on the rebalance day is calculated as:
 
-### Covariance estimator robustness
+\[ R\_{t,`\mathrm{net}`{=tex}} = (1 +
+R\_{t,`\mathrm{gross}`{=tex}})(1-c_t)-1 \]
 
-The robustness analysis compares portfolio performance across covariance estimators and alternative backtesting configurations.
+The backtest reports gross and net returns for both the minimum-variance
+and equal-weight strategies.
 
-The purpose is to assess whether portfolio results are sensitive to the covariance estimation method and model parameters.
+### Performance and risk evaluation
 
-### Allocation stability
+The backtest reporting workflow evaluates:
 
-The allocation stability analysis examines the weights generated at each rebalancing date.
+-   Total return.
+-   Annualized return.
+-   Annualized volatility.
+-   Sharpe ratio.
+-   Maximum drawdown.
 
-Three complementary measures are considered:
+The Sharpe ratio uses the annualized arithmetic mean return in excess of
+the risk-free rate, divided by annualized volatility.
 
-- **Weight variability:** standard deviation and range of each asset's target allocation.
-- **Target allocation turnover:** one-way turnover between consecutive optimized target allocations, calculated as half the sum of absolute weight changes.
-- **Effective number of assets:** inverse Herfindahl index, calculated as \(1 / \sum_i w_i^2\).
+### Stress testing
 
-Target allocation turnover measures changes between optimized allocations. It is distinct from executed trading turnover, which also accounts for portfolio weight drift.
+The project includes historical and parametric stress analysis.
 
-### Rolling portfolio performance attribution
+Historical stress testing evaluates portfolio behaviour over adverse
+historical return windows. Parametric scenarios apply specified shocks
+to asset classes to examine the sensitivity of portfolio allocations to
+adverse market conditions.
 
-Rolling performance attribution decomposes daily portfolio returns into asset-level contributions using beginning-of-day portfolio weights.
+These scenarios are analytical tools, not forecasts of future market
+losses.
 
-For each asset, the daily contribution is calculated as:
+### Allocation stability and robustness
 
-\[
-C_{i,t} = w_{i,t-1} r_{i,t}
-\]
+The project compares covariance estimators and examines how their
+resulting allocations change through time.
 
-where \(w_{i,t-1}\) represents the asset's portfolio weight at the beginning of the day and \(r_{i,t}\) its daily return.
+The analysis includes portfolio weight stability and allocation turnover
+across successive rebalances. This helps assess whether an optimizer's
+output is sensitive to the covariance estimation method.
 
-Portfolio weights drift between rebalancing dates as asset prices evolve. At each rebalance, weights are reset to the newly optimized target allocation.
+### Performance attribution
 
-Daily asset contributions reconcile to the gross portfolio return:
+Two attribution approaches are implemented:
 
-\[
-R_{p,t}^{gross} = \sum_i C_{i,t}
-\]
+-   **Fixed-weight attribution:** decomposes portfolio performance into
+    asset-level contributions for a fixed allocation.
+-   **Rolling attribution:** reconstructs daily beginning-of-period
+    portfolio weights, including allocation drift and rebalancing, and
+    decomposes rolling backtest returns into asset contributions and
+    transaction costs.
 
-Transaction costs are calculated separately from executed turnover and deducted from gross returns:
+The rolling attribution is designed to reconcile with the corresponding
+gross and net backtest returns.
 
-\[
-R_{p,t}^{net} = R_{p,t}^{gross} - TC_t
-\]
+## Synthetic data and reproducibility
 
-This separates investment performance attributable to asset exposures from the impact of trading costs.
+The repository includes a deterministic synthetic price dataset
+generated by `data/generate_data.py`.
 
-The attribution implementation is validated against the rolling backtest, ensuring that gross and net daily returns reconcile for both Equal Weight and Minimum Variance strategies.
+The generator simulates six asset classes using predefined annual return
+assumptions, volatilities, and cross-asset correlations. Daily
+multivariate Gaussian log returns are generated using a fixed random
+seed, then converted into price series.
 
-## Example Results
+The dataset is intended for testing and methodological demonstration. It
+is **not actual market data**, and results obtained from it should not
+be interpreted as evidence of live investment performance.
 
-The following portfolio results are generated from the included synthetic dataset.
+To regenerate the dataset:
 
-| Metric | Equal Weight | Minimum Variance |
-|---|---:|---:|
-| Annualized return | 5.92% | 4.47% |
-| Annualized volatility | 9.07% | 5.55% |
-| Sharpe ratio | 0.6529 | 0.8043 |
-| Maximum drawdown | -17.86% | -10.72% |
-| Worst 21-day return | -8.21% | -4.15% |
+``` bash
+python -m data.generate_data
+```
 
-### Parametric stress results
+## Example results
 
-| Scenario | Equal Weight | Minimum Variance |
-|---|---:|---:|
-| Equity sell-off | -8.83% | -3.46% |
-| Bond sell-off | -5.17% | -7.55% |
-| Combined risk-off | -13.67% | -5.91% |
+The following figures are illustrative results from the project's
+synthetic dataset and a particular full-history analysis configuration.
+They are not live or historical investment performance.
 
-The minimum-variance portfolio exhibits lower volatility and smaller losses under the equity sell-off and combined risk-off assumptions. It is more exposed to the modeled bond sell-off, reflecting its larger fixed-income allocation.
+  Metric                    Equal Weight   Minimum Variance
+  ----------------------- -------------- ------------------
+  Annualized return                5.92%              4.47%
+  Annualized volatility            9.07%              5.55%
+  Sharpe ratio                     0.653              0.804
+  Maximum drawdown               -17.86%            -10.72%
+  Worst 21-day return             -8.21%             -4.15%
 
-### Allocation stability results
+In this configuration, the minimum-variance portfolio had lower realized
+return and volatility than the equal-weight portfolio, alongside a
+higher Sharpe ratio and a smaller maximum drawdown.
 
-The following results compare covariance estimators over 36 rebalancing dates, from February 2023 to December 2025.
-
-| Metric | Sample | Fixed Shrinkage | Ledoit-Wolf |
-|---|---:|---:|---:|
-| Mean target allocation turnover | 2.06% | 1.48% | 1.88% |
-| Median target allocation turnover | 1.90% | 1.54% | 1.85% |
-| Maximum target allocation turnover | 4.55% | 2.64% | 3.15% |
-| Mean effective number of assets | 3.229 | 3.289 | 3.294 |
-
-Fixed shrinkage produces the lowest target allocation turnover in this experiment. It also reduces the variability of equity allocations compared with sample covariance.
-
-Government bonds remain at the 40% maximum allocation throughout the analysis. This reflects the binding optimization constraint rather than an unconstrained preference of the covariance estimator.
-
-These results suggest that covariance shrinkage can improve allocation stability in this particular configuration. They do not establish that one estimator will perform best across other datasets or market regimes.
+Results depend on the dataset, estimation period, optimization
+constraints, covariance estimator, and backtest configuration. They
+should always be interpreted in that context.
 
 ## Installation
 
-Requires Python 3.13 or a compatible Python version supported by the dependencies.
-
 Clone the repository:
 
-```bash
+``` bash
 git clone git@github.com:RobinBasso/portfolio-allocation-engine.git
 cd portfolio-allocation-engine
 ```
 
 Create and activate a virtual environment:
 
-```bash
+``` bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
 Install dependencies:
 
-```bash
-python -m pip install -r requirements.txt
+``` bash
+pip install -r requirements.txt
 ```
 
-## Running the Analysis
+## Running the project
 
-Run the integrated portfolio analysis:
+Run the portfolio analysis:
 
-```bash
-python -m app.run_analysis
+``` bash
+python app/run_analysis.py
 ```
 
-Run covariance estimator robustness analysis:
+Run the rolling backtest report:
 
-```bash
-python -m app.covariance_robustness
+``` bash
+python app/run_backtest_report.py
 ```
 
-Run transaction cost sensitivity analysis:
+Launch the Streamlit dashboard:
 
-```bash
-python -m app.transaction_cost_sensitivity
+``` bash
+streamlit run app/dashboard.py
 ```
 
-Run allocation stability analysis:
+Additional scripts in `app/` run covariance comparisons, robustness
+checks, sensitivity analysis, allocation-stability analysis, plotting,
+and performance attribution.
 
-```bash
-python -m app.weight_stability
+Generated reports and plots are written to the reports directory where
+applicable. Generated report outputs are excluded from version control.
+
+## Tests
+
+Run the complete test suite from the repository root:
+
+``` bash
+pytest -q
 ```
 
-Run rolling portfolio performance attribution:
-
-```bash
-python -m app.performance_attribution
-```
-
-Generate allocation stability charts:
-
-```bash
-python -m app.plot_weight_stability
-```
-
-Other portfolio charts can be generated with:
-
-```bash
-python -m app.plot_analysis
-python -m app.plot_backtest
-```
-
-Generated charts are saved in the `reports/` directory.
-
-## Testing
-
-Run the complete test suite:
-
-```bash
-pytest -v
-```
-
-The project includes tests covering portfolio analytics, covariance estimation, optimization constraints, rolling backtesting, transaction costs, allocation stability, and reporting.
+The tests cover portfolio calculations, covariance estimation,
+optimization, risk metrics, stress scenarios, rolling backtesting,
+reporting, turnover, and performance attribution.
 
 ## Limitations
 
-- The included data are synthetic, not live market observations.
-- Historical covariance and return estimates are sensitive to the chosen sample.
-- Minimum-variance optimization can produce allocations concentrated in assets with low estimated volatility or favorable correlations.
-- Backtest results depend on estimation windows, rebalancing frequency, and covariance model assumptions.
-- Transaction costs are simplified and do not fully capture liquidity constraints or market impact.
-- Parametric stress results depend on user-defined shocks and do not capture all market dynamics.
-- Results from synthetic data should not be interpreted as evidence of future investment performance.
+-   The included dataset is synthetic and does not represent actual
+    market observations.
+-   The return-generating process is based on multivariate Gaussian log
+    returns and does not capture all features of real financial markets,
+    such as fat tails, volatility clustering, or changing correlations.
+-   Optimization results are sensitive to estimated inputs, especially
+    the covariance matrix.
+-   The minimum-variance objective does not directly optimize expected
+    return or investor-specific preferences.
+-   Transaction costs are represented by a simplified proportional
+    basis-point assumption; market impact, liquidity constraints, taxes,
+    and execution effects are not fully modelled.
+-   Backtest results depend on the chosen estimation window, rebalance
+    frequency, constraints, and modelling assumptions.
+-   The project is a quantitative research and engineering exercise, not
+    investment advice or a production trading system.
 
 ## Technologies
 
-Python, NumPy, pandas, SciPy, scikit-learn, Matplotlib, pytest, constrained numerical optimization, covariance estimation, and quantitative portfolio risk analytics.
+-   Python
+-   NumPy
+-   pandas
+-   SciPy
+-   scikit-learn
+-   Matplotlib
+-   Streamlit
+-   pytest

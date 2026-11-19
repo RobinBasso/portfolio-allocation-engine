@@ -123,7 +123,7 @@ At each rebalance, the optimizer uses the trailing estimation window available a
 
 Portfolio weights drift with asset performance between rebalances. Executed turnover therefore accounts for the difference between the drifted holdings and the new target allocation.
 
-Transaction costs are applied when the portfolio is rebalanced. If \(TO_t\) is executed turnover and \(b\) is the transaction-cost assumption in basis points, the proportional cost is:
+Transaction costs are applied when the portfolio is rebalanced. If $TO_t$ is executed turnover and $b$ is the transaction-cost assumption in basis points, the proportional cost is:
 
 $$
 c_t = TO_t \frac{b}{10\,000}
@@ -132,9 +132,7 @@ $$
 The net return on the rebalance day is calculated as:
 
 $$
-R_{t,\mathrm{net}}
-=
-(1+R_{t,\mathrm{gross}})(1-c_t)-1
+R_{t,\mathrm{net}} = (1+R_{t,\mathrm{gross}})(1-c_t)-1
 $$
 
 The backtest reports gross and net returns for both the minimum-variance and equal-weight strategies.

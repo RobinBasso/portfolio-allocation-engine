@@ -104,7 +104,7 @@ $$
 0 \leq w_i \leq w_{\max}
 $$
 
-where \(w\) is the vector of portfolio weights, \(\Sigma\) is the estimated covariance matrix, and \(w_{\max}\) is the maximum permitted weight for an individual asset.
+where $w$ is the vector of portfolio weights, $\Sigma$ is the estimated covariance matrix, and $w_{max}$ is the maximum permitted weight for an individual asset.
 
 The resulting portfolio is compared with an equal-weight allocation.
 

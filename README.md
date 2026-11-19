@@ -18,6 +18,7 @@ The engine currently includes:
 - Transaction cost sensitivity analysis.
 - Covariance estimator robustness analysis.
 - Portfolio allocation stability analysis.
+- Rolling portfolio performance attribution, including daily asset contributions and transaction costs.
 - Automated unit and integration tests.
 
 ## Features
@@ -40,17 +41,21 @@ The engine currently includes:
 portfolio-allocation-engine/
 ├── app/
 │   ├── covariance_robustness.py
+│   ├── performance_attribution.py
 │   ├── plot_analysis.py
 │   ├── plot_backtest.py
 │   ├── plot_weight_stability.py
 │   ├── run_analysis.py
 │   ├── transaction_cost_sensitivity.py
 │   └── weight_stability.py
+│
 ├── backtesting/
+│   ├── attribution.py
 │   ├── rolling.py
 │   └── weights.py
 ├── core/
 │   ├── analysis.py
+│   ├── attribution.py
 │   ├── backtest_metrics.py
 │   ├── comparison.py
 │   ├── covariance.py
@@ -59,6 +64,7 @@ portfolio-allocation-engine/
 │   ├── returns.py
 │   ├── risk.py
 │   └── turnover.py
+│
 ├── optimization/
 │   └── minimum_variance.py
 ├── scenarios/
@@ -138,6 +144,36 @@ Three complementary measures are considered:
 - **Effective number of assets:** inverse Herfindahl index, calculated as \(1 / \sum_i w_i^2\).
 
 Target allocation turnover measures changes between optimized allocations. It is distinct from executed trading turnover, which also accounts for portfolio weight drift.
+
+### Rolling portfolio performance attribution
+
+Rolling performance attribution decomposes daily portfolio returns into asset-level contributions using beginning-of-day portfolio weights.
+
+For each asset, the daily contribution is calculated as:
+
+\[
+C_{i,t} = w_{i,t-1} r_{i,t}
+\]
+
+where \(w_{i,t-1}\) represents the asset's portfolio weight at the beginning of the day and \(r_{i,t}\) its daily return.
+
+Portfolio weights drift between rebalancing dates as asset prices evolve. At each rebalance, weights are reset to the newly optimized target allocation.
+
+Daily asset contributions reconcile to the gross portfolio return:
+
+\[
+R_{p,t}^{gross} = \sum_i C_{i,t}
+\]
+
+Transaction costs are calculated separately from executed turnover and deducted from gross returns:
+
+\[
+R_{p,t}^{net} = R_{p,t}^{gross} - TC_t
+\]
+
+This separates investment performance attributable to asset exposures from the impact of trading costs.
+
+The attribution implementation is validated against the rolling backtest, ensuring that gross and net daily returns reconcile for both Equal Weight and Minimum Variance strategies.
 
 ## Example Results
 
@@ -226,6 +262,12 @@ Run allocation stability analysis:
 
 ```bash
 python -m app.weight_stability
+```
+
+Run rolling portfolio performance attribution:
+
+```bash
+python -m app.performance_attribution
 ```
 
 Generate allocation stability charts:
